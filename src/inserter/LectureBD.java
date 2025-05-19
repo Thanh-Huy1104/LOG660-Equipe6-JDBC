@@ -5,13 +5,16 @@ import java.io.IOException;
 
 import java.io.InputStream;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-public class LectureBD {   
+public class LectureBD {
+   private Connection conn;
    public class Role {
       public Role(int i, String n, String p) {
          id = i;
@@ -331,7 +334,7 @@ public class LectureBD {
                }              
             }
             
-            eventType = parser.next();            
+            eventType = parser.next();
          }
       }
       catch (XmlPullParserException e) {
@@ -363,10 +366,24 @@ public class LectureBD {
                              String forfait) {
       // On le client dans la BD
    }
-   
+
    private void connectionBD() {
-      // On se connecte a la BD
+      try {
+         // Adjust driver and URL for your DB
+         Class.forName("oracle.jdbc.OracleDriver");
+         conn = DriverManager.getConnection(
+                 "jdbc:oracle:thin:@//bdlog660.ens.ad.etsmtl.ca:1521/ORCLPDB.ens.ad.etsmtl.ca",
+                 "EQUIPE206",                        // replace with your username
+                 "NulxJFxU"                         // replace with your password
+         );
+         conn.setAutoCommit(false);
+         System.out.println("Connexion réussie à la base de données.");
+      } catch (Exception e) {
+         e.printStackTrace();
+         System.exit(1);
+      }
    }
+
 
    public static void main(String[] args) {
       LectureBD lecture = new LectureBD();
