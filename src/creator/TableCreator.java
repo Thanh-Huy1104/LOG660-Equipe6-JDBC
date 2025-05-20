@@ -178,8 +178,6 @@ public class TableCreator {
                 "courriel" VARCHAR2(255) NOT NULL UNIQUE,
                 "motDePasse" VARCHAR2(50) NOT NULL,
                 "telephone" VARCHAR2(20) NOT NULL,
-                "noCivique" NUMBER NOT NULL,
-                "rue" VARCHAR2(100) NOT NULL,
                 "ville" VARCHAR2(100) NOT NULL,
                 "province" VARCHAR2(100) NOT NULL,
                 "codePostal" VARCHAR2(10) NOT NULL,
