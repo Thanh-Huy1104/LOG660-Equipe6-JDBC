@@ -34,8 +34,6 @@ public class TableCreator {
         dropTable("Forfait");
         dropTable("Employe");
         dropTable("Film");
-        dropTable("Acteur");
-        dropTable("Realisateur");
         dropTable("Utilisateur");
         dropTable("Scenariste");
         dropTable("Personne");
@@ -75,9 +73,6 @@ public class TableCreator {
         createPersonneTable();
         createScenaristeTable();
         createUtilisateurTable();
-
-        createRealisateurTable(); // Depends on Personne
-        createActeurTable(); // Depends on Personne
 
         createFilmTable(); // Depends on Realisateur
 
@@ -148,7 +143,6 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Personne" (
                 "idPersonne" VARCHAR2(10) PRIMARY KEY,
-                "prenom" VARCHAR2(255) NOT NULL,
                 "nom" VARCHAR2(255) NOT NULL,
                 "dateNaissance" DATE NOT NULL,
                 "lieuNaissance" VARCHAR2(255) NOT NULL,
@@ -163,7 +157,7 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Scenariste" (
                 "idScenariste" VARCHAR2(10) PRIMARY KEY,
-                "nom" VARCHAR2(255) NOT NULL
+                "nom" VARCHAR2(20) NOT NULL
             )
         """;
         executeUpdate(sql, "Scenariste");
@@ -178,34 +172,14 @@ public class TableCreator {
                 "courriel" VARCHAR2(255) NOT NULL UNIQUE,
                 "motDePasse" VARCHAR2(50) NOT NULL,
                 "telephone" VARCHAR2(20) NOT NULL,
-                "ville" VARCHAR2(100) NOT NULL,
-                "province" VARCHAR2(100) NOT NULL,
+                "adresse" VARCHAR2(255) NOT NULL,
+                "ville" VARCHAR2(20) NOT NULL,
+                "province" VARCHAR2(20) NOT NULL,
                 "codePostal" VARCHAR2(10) NOT NULL,
                 "dateNaissance" DATE NOT NULL
             )
         """;
         executeUpdate(sql, "Utilisateur");
-    }
-
-    // Subtype/Role Tables related to Personne
-    private void createRealisateurTable() throws SQLException {
-        String sql = """
-            CREATE TABLE "Realisateur" (
-                "idPersonne" VARCHAR2(10) PRIMARY KEY,
-                CONSTRAINT "fk_realisateur_personne" FOREIGN KEY ("idPersonne") REFERENCES "Personne"("idPersonne") ON DELETE CASCADE
-            )
-        """;
-        executeUpdate(sql, "Realisateur");
-    }
-
-    private void createActeurTable() throws SQLException {
-        String sql = """
-            CREATE TABLE "Acteur" (
-                "idPersonne" VARCHAR2(10) PRIMARY KEY,
-                CONSTRAINT "fk_acteur_personne" FOREIGN KEY ("idPersonne") REFERENCES "Personne"("idPersonne") ON DELETE CASCADE
-            )
-        """;
-        executeUpdate(sql, "Acteur");
     }
 
     // Core Media Table
@@ -219,8 +193,8 @@ public class TableCreator {
                 "dureeFilm" NUMBER NOT NULL,
                 "resume" CLOB,
                 "affiche" VARCHAR2(255),
-                "realisateur_id" VARCHAR2(10) NOT NULL,
-                CONSTRAINT "fk_film_realisateur" FOREIGN KEY ("realisateur_id") REFERENCES "Realisateur"("idPersonne")
+                "idRealisateur" VARCHAR2(10) NOT NULL,
+                CONSTRAINT "fk_film_realisateur" FOREIGN KEY ("idRealisateur") REFERENCES "Personne"("idPersonne")
             )
         """;
         executeUpdate(sql, "Film");
@@ -246,7 +220,7 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Employe" (
                 "idUser" VARCHAR2(10) PRIMARY KEY,
-                "matricule" VARCHAR2(50) NOT NULL UNIQUE,
+                "matricule" NUMBER NOT NULL UNIQUE,
                 CONSTRAINT "fk_employe_utilisateur" FOREIGN KEY ("idUser") REFERENCES "Utilisateur"("idUser") ON DELETE CASCADE
             )
         """;
@@ -257,10 +231,10 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Client" (
                 "idUser" VARCHAR2(10) PRIMARY KEY,
-                "carteCreditNumero" VARCHAR2(19) NOT NULL UNIQUE,
+                "carteCreditNumero" VARCHAR2(16) NOT NULL UNIQUE,
                 "carteCreditExpMois" NUMBER(2) NOT NULL,
                 "carteCreditExpAnnee" NUMBER(4) NOT NULL,
-                "carteCreditCVV" VARCHAR2(4) NOT NULL,
+                "carteCreditCVV" NUMBER(4) NOT NULL,
                 "carteCreditType" VARCHAR2(10) NOT NULL,
                 "codeForfait" VARCHAR2(10) NOT NULL,
                 CONSTRAINT "fk_client_utilisateur" FOREIGN KEY ("idUser") REFERENCES "Utilisateur"("idUser") ON DELETE CASCADE,
@@ -289,7 +263,7 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "BandeAnnonce" (
                 "idBandeAnnonce" VARCHAR2(10) PRIMARY KEY,
-                "url" VARCHAR2(512) NOT NULL UNIQUE,
+                "url" VARCHAR2(255) NOT NULL UNIQUE,
                 "idFilm" VARCHAR2(10) NOT NULL,
                 CONSTRAINT "fk_bandeannonce_film" FOREIGN KEY ("idFilm") REFERENCES "Film"("idFilm") ON DELETE CASCADE
             )
@@ -345,8 +319,7 @@ public class TableCreator {
                 "idFilm" VARCHAR2(10) NOT NULL,
                 "idActeur" VARCHAR2(10) NOT NULL,
                 CONSTRAINT "fk_role_film" FOREIGN KEY ("idFilm") REFERENCES "Film"("idFilm") ON DELETE CASCADE,
-                CONSTRAINT "fk_role_acteur" FOREIGN KEY ("idActeur") REFERENCES "Acteur"("idPersonne") ON DELETE CASCADE
-            )
+                CONSTRAINT "fk_role_acteur" FOREIGN KEY ("idActeur") REFERENCES "Personne"("idPersonne") ON DELETE CASCADE            )
         """;
         executeUpdate(sql, "Role");
     }
