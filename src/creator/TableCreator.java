@@ -148,7 +148,6 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Personne" (
                 "idPersonne" VARCHAR2(10) PRIMARY KEY,
-                "prenom" VARCHAR2(255) NOT NULL,
                 "nom" VARCHAR2(255) NOT NULL,
                 "dateNaissance" DATE NOT NULL,
                 "lieuNaissance" VARCHAR2(255) NOT NULL,
