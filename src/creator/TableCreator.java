@@ -1,15 +1,33 @@
 package creator;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class TableCreator {
 
-    private final Connection conn;
+    private Connection conn;
 
-    public TableCreator(Connection conn) {
-        this.conn = conn;
+    public TableCreator() {
+        connectionBD();
+    }
+
+    private void connectionBD() {
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+            conn = DriverManager.getConnection(
+                    "jdbc:oracle:thin:@//bdlog660.ens.ad.etsmtl.ca:1521/ORCLPDB.ens.ad.etsmtl.ca",
+                    "EQUIPE206",
+                    "NulxJFxU"
+            );
+            conn.setAutoCommit(false);
+            System.out.println("Connexion réussie à la base de données.");
+        } catch (Exception e) {
+            System.err.println("Erreur de connexion à la BD: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     public void resetAndCreateTables() throws SQLException {
@@ -144,8 +162,8 @@ public class TableCreator {
             CREATE TABLE "Personne" (
                 "idPersonne" VARCHAR2(10) PRIMARY KEY,
                 "nom" VARCHAR2(255) NOT NULL,
-                "dateNaissance" DATE NOT NULL,
-                "lieuNaissance" VARCHAR2(255) NOT NULL,
+                "dateNaissance" DATE,
+                "lieuNaissance" VARCHAR2(255),
                 "photo" VARCHAR2(255),
                 "biographie" CLOB
             )
@@ -156,8 +174,8 @@ public class TableCreator {
     private void createScenaristeTable() throws SQLException {
         String sql = """
             CREATE TABLE "Scenariste" (
-                "idScenariste" VARCHAR2(10) PRIMARY KEY,
-                "nom" VARCHAR2(20) NOT NULL
+                "idScenariste" VARCHAR2(36) PRIMARY KEY,
+                "nom" VARCHAR2(255) NOT NULL
             )
         """;
         executeUpdate(sql, "Scenariste");
@@ -189,7 +207,7 @@ public class TableCreator {
                 "idFilm" VARCHAR2(10) PRIMARY KEY,
                 "titre" VARCHAR2(255) NOT NULL,
                 "anneeSortie" NUMBER(4) NOT NULL,
-                "langue" VARCHAR2(50) NOT NULL,
+                "langue" VARCHAR2(50),
                 "dureeFilm" NUMBER NOT NULL,
                 "resume" CLOB,
                 "affiche" VARCHAR2(255),
@@ -231,7 +249,7 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "Client" (
                 "idUser" VARCHAR2(10) PRIMARY KEY,
-                "carteCreditNumero" VARCHAR2(16) NOT NULL UNIQUE,
+                "carteCreditNumero" VARCHAR2(19) NOT NULL UNIQUE,
                 "carteCreditExpMois" NUMBER(2) NOT NULL,
                 "carteCreditExpAnnee" NUMBER(4) NOT NULL,
                 "carteCreditCVV" NUMBER(4) NOT NULL,
@@ -249,7 +267,7 @@ public class TableCreator {
     private void createCopieTable() throws SQLException {
         String sql = """
             CREATE TABLE "Copie" (
-                "code" VARCHAR2(10) PRIMARY KEY,
+                "code" VARCHAR2(255) PRIMARY KEY,
                 "idFilm" VARCHAR2(10) NOT NULL,
                 "etat" VARCHAR2(10) NOT NULL,
                 CONSTRAINT "fk_copie_film" FOREIGN KEY ("idFilm") REFERENCES "Film"("idFilm") ON DELETE CASCADE,
@@ -262,8 +280,8 @@ public class TableCreator {
     private void createBandeAnnonceTable() throws SQLException {
         String sql = """
             CREATE TABLE "BandeAnnonce" (
-                "idBandeAnnonce" VARCHAR2(10) PRIMARY KEY,
-                "url" VARCHAR2(255) NOT NULL UNIQUE,
+                "idBandeAnnonce" VARCHAR2(36) PRIMARY KEY,
+                "url" VARCHAR2(255) NOT NULL,
                 "idFilm" VARCHAR2(10) NOT NULL,
                 CONSTRAINT "fk_bandeannonce_film" FOREIGN KEY ("idFilm") REFERENCES "Film"("idFilm") ON DELETE CASCADE
             )
@@ -302,7 +320,7 @@ public class TableCreator {
         String sql = """
             CREATE TABLE "FilmScenariste" (
                 "idFilm" VARCHAR2(10),
-                "idScenariste" VARCHAR2(10),
+                "idScenariste" VARCHAR2(36),
                 PRIMARY KEY ("idFilm", "idScenariste"),
                 CONSTRAINT "fk_filmscenariste_film" FOREIGN KEY ("idFilm") REFERENCES "Film"("idFilm") ON DELETE CASCADE,
                 CONSTRAINT "fk_filmscenariste_scenariste" FOREIGN KEY ("idScenariste") REFERENCES "Scenariste"("idScenariste") ON DELETE CASCADE
@@ -314,7 +332,7 @@ public class TableCreator {
     private void createRoleTable() throws SQLException {
         String sql = """
             CREATE TABLE "Role" (
-                "idRole" VARCHAR2(10) PRIMARY KEY,
+                "idRole" VARCHAR2(36) PRIMARY KEY,
                 "personnage" VARCHAR2(255),
                 "idFilm" VARCHAR2(10) NOT NULL,
                 "idActeur" VARCHAR2(10) NOT NULL,

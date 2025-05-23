@@ -31,7 +31,7 @@ public class MainCreator {
             conn.setAutoCommit(false);
 
             // 3. Create an instance of TableCreator
-            TableCreator tableCreator = new TableCreator(conn);
+            TableCreator tableCreator = new TableCreator();
 
             // 4. Reset and create tables
             System.out.println("Starting table reset and creation process...");

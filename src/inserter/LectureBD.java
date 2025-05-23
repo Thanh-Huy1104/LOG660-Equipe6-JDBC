@@ -9,8 +9,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -25,8 +24,6 @@ public class LectureBD {
     private PreparedStatement psUtilisateur;
     private PreparedStatement psClient;
     private PreparedStatement psFilm;
-    private PreparedStatement psRealisateur;
-    private PreparedStatement psActeur;
     private PreparedStatement psDomaineCarteCreditMerge;
     private PreparedStatement psDomaineForfaitMerge;
     private PreparedStatement psForfaitMerge;
@@ -46,9 +43,6 @@ public class LectureBD {
     private int utilisateurBatchCount = 0;
     private int clientBatchCount = 0;
     private int filmBatchCount = 0;
-    private int realisateurBatchCount = 0;
-    private int acteurBatchCount = 0;
-    private int relatedFilmDataBatchCount = 0;
 
 
     public class Role {
@@ -81,7 +75,7 @@ public class LectureBD {
             psDomaineCopieMerge = conn.prepareStatement("MERGE INTO \"DomaineCopie\" target USING (SELECT ? AS etat FROM dual) source ON (target.\"etat\" = source.etat) WHEN NOT MATCHED THEN INSERT (\"etat\") VALUES (source.etat)");
             psPaysProductionMerge = conn.prepareStatement("MERGE INTO \"PaysProduction\" target USING (SELECT ? AS nom FROM dual) source ON (target.\"nomPays\" = source.nom) WHEN NOT MATCHED THEN INSERT (\"nomPays\") VALUES (source.nom)");
             psGenreMerge = conn.prepareStatement("MERGE INTO \"Genre\" target USING (SELECT ? AS nom FROM dual) source ON (target.\"nomGenre\" = source.nom) WHEN NOT MATCHED THEN INSERT (\"nomGenre\") VALUES (source.nom)");
-            psScenaristeMerge = conn.prepareStatement("MERGE INTO \"Scenariste\" target USING (SELECT ? AS id, ? AS nom FROM dual) source ON (target.\"idScenariste\" = source.id) WHEN NOT MATCHED THEN INSERT (\"idScenariste\", \"nom\") VALUES (source.id, source.nom)");
+            psScenaristeMerge = conn.prepareStatement("MERGE INTO \"Scenariste\" target USING (SELECT ? AS id, ? AS nom FROM dual) source ON (target.\"nom\" = source.nom) WHEN NOT MATCHED THEN INSERT (\"idScenariste\", \"nom\") VALUES (source.id, source.nom)");
 
             psFilmPays = conn.prepareStatement("INSERT INTO \"FilmPays\" (\"idFilm\", \"nomPays\") VALUES (?, ?)");
             psFilmGenre = conn.prepareStatement("INSERT INTO \"FilmGenre\" (\"idFilm\", \"nomGenre\") VALUES (?, ?)");
@@ -124,7 +118,6 @@ public class LectureBD {
                         personneBatchCount++;
                         if (personneBatchCount % BATCH_SIZE == 0) {
                             psPersonne.executeBatch();
-                            System.out.println("Batch of " + BATCH_SIZE + " personnes inserted.");
                         }
 
                         id = -1;
@@ -147,8 +140,7 @@ public class LectureBD {
                 eventType = parser.next();
             }
             if (personneBatchCount % BATCH_SIZE != 0 && personneBatchCount > 0) {
-                psPersonne.executeBatch(); // Execute remaining batch
-                System.out.println("Final batch of " + (personneBatchCount % BATCH_SIZE) + " personnes inserted.");
+                psPersonne.executeBatch();
             }
             conn.commit();
             System.out.println("Total personnes inserted: " + count);
@@ -159,6 +151,8 @@ public class LectureBD {
     }
 
     public void lectureFilms(String nomFichier) {
+        Map<String, String> scenaristToIdMap = new HashMap<>();
+
         int filmCount = 0;
         try {
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -197,12 +191,11 @@ public class LectureBD {
                         insertionFilm(Integer.toString(id), titre, annee, pays, langue,
                                 duree, resume, genres, realisateurNom,
                                 realisateurId, scenaristes,
-                                roles, poster, annonces);
+                                roles, poster, annonces, scenaristToIdMap);
                         filmCount++;
                         filmBatchCount++;
                         if (filmBatchCount % BATCH_SIZE == 0) {
                             executeFilmBatches();
-                            System.out.println("Batch of " + BATCH_SIZE + " films inserted.");
                         }
 
                         id = -1;
@@ -249,7 +242,6 @@ public class LectureBD {
             }
             if (filmBatchCount % BATCH_SIZE != 0 && filmBatchCount > 0) {
                 executeFilmBatches();
-                System.out.println("Final batch of " + (filmBatchCount % BATCH_SIZE) + " films inserted.");
             }
             conn.commit();
             System.out.println("Total films inserted: " + filmCount);
@@ -292,7 +284,6 @@ public class LectureBD {
 
                         if (utilisateurBatchCount % BATCH_SIZE == 0) {
                             executeClientBatches();
-                            System.out.println("Batch of " + BATCH_SIZE + " clients inserted.");
                         }
 
                         id = -1;
@@ -339,7 +330,6 @@ public class LectureBD {
             }
             if (utilisateurBatchCount > 0) {
                 executeClientBatches();
-                System.out.println("Final batch of " + (utilisateurBatchCount % BATCH_SIZE) + " clients inserted.");
                 utilisateurBatchCount = 0;
             }
 
@@ -366,7 +356,9 @@ public class LectureBD {
                                ArrayList<String> genres, String realisateurNom, int realisateurId,
                                ArrayList<String> scenaristes,
                                ArrayList<Role> roles, String poster,
-                               ArrayList<String> annonces) throws SQLException {
+                               ArrayList<String> annonces,
+                               Map<String, String> scenaristToIdMap
+                               ) throws SQLException {
         psFilm.setString(1, id);
         psFilm.setString(2, titre);
         psFilm.setInt(3, annee);
@@ -374,8 +366,11 @@ public class LectureBD {
         psFilm.setInt(5, duree);
         psFilm.setString(6, resume);
         psFilm.setString(7, poster);
-        psFilm.setInt(8, realisateurId);
-        psFilm.addBatch();
+        if (realisateurId != -1) {
+            psFilm.setString(8, Integer.toString(realisateurId));
+        }
+        psFilm.execute();
+
 
         for (String paysNom : pays) {
             psPaysProductionMerge.setString(1, paysNom);
@@ -396,21 +391,27 @@ public class LectureBD {
             psFilmGenre.addBatch();
         }
 
-        for (String scenariste : scenaristes) {
+        for (String scenaristeName : scenaristes) { // Renamed 'scenariste' to 'scenaristeName' for clarity
             //Generated id for scenariste
-            String idScenariste = Integer.toString(random.nextInt(1000000));
-            psScenaristeMerge.setString(1, idScenariste);
+            String idScenariste;
+            if (scenaristToIdMap.containsKey(scenaristeName)) {
+                idScenariste = scenaristToIdMap.get(scenaristeName);
+            } else {
+                idScenariste = UUID.randomUUID().toString();
+                scenaristToIdMap.put(scenaristeName, idScenariste);
 
-            psScenaristeMerge.setString(2, scenariste);
-            psScenaristeMerge.addBatch();
+                psScenaristeMerge.setString(1, idScenariste);
+                psScenaristeMerge.setString(2, scenaristeName); // Use the name here
+                psScenaristeMerge.addBatch();
+            }
 
             psFilmScenariste.setString(1, id);
-            psFilmScenariste.setString(2, scenariste);
+            psFilmScenariste.setString(2, idScenariste);
             psFilmScenariste.addBatch();
         }
 
         for (Role role : roles) {
-            String idRole = Integer.toString(random.nextInt(1000000));
+            String idRole = UUID.randomUUID().toString();
             psRole.setString(1, idRole);
             psRole.setString(2, role.personnage);
             psRole.setString(3, id);
@@ -421,11 +422,11 @@ public class LectureBD {
         }
 
         for (String annonce : annonces) {
-            String idAnnonce = Integer.toString(random.nextInt(1000000));
+            String idAnnonce = UUID.randomUUID().toString();
             psBandeAnnonce.setString(1, idAnnonce);
             psBandeAnnonce.setString(2, annonce);
             psBandeAnnonce.setString(3, id);
-            psBandeAnnonce.addBatch();
+            psBandeAnnonce.execute();
         }
 
         int nombreCopie = random.nextInt(100) + 1;
@@ -434,13 +435,12 @@ public class LectureBD {
         psDomaineCopieMerge.addBatch();
 
         for (int i = 0; i < nombreCopie; i++) {
-            String codeCopie = "CP_" + String.format("%03d", i + 1);
+            String codeCopie = "CP_" + id + "_" + String.format("%03d", i + 1);
             psCopie.setString(1, codeCopie);
             psCopie.setString(2, id);
             psCopie.setString(3, etat);
             psCopie.addBatch();
         }
-
     }
 
     private void insertionClient(String id, String nomFamille, String prenom,
@@ -581,14 +581,5 @@ public class LectureBD {
                 psClient.executeBatch();
             }
         }
-    }
-
-
-    public static void main(String[] args) {
-        LectureBD lecture = new LectureBD();
-
-        lecture.lecturePersonnes(args[0]);
-        lecture.lectureFilms(args[1]);
-        lecture.lectureClients(args[2]);
     }
 }
