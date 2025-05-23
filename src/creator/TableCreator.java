@@ -173,7 +173,7 @@ public class TableCreator {
                 "motDePasse" VARCHAR2(50) NOT NULL,
                 "telephone" VARCHAR2(20) NOT NULL,
                 "adresse" VARCHAR2(255) NOT NULL,
-                "ville" VARCHAR2(20) NOT NULL,
+                "ville" VARCHAR2(255) NOT NULL,
                 "province" VARCHAR2(20) NOT NULL,
                 "codePostal" VARCHAR2(10) NOT NULL,
                 "dateNaissance" DATE NOT NULL
